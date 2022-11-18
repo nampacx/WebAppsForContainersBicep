@@ -1,0 +1,1 @@
+az deployment group create -g "rg-webappcontainer-test" --template-file "../bicep/main.bicep" --parameters "../bicep/param-nginx.json"
