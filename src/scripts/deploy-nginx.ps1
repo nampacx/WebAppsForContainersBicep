@@ -1,6 +1,6 @@
 
-$MyResourceGroup = 'rg-webappcontainer-d'
-$SubscriptionId = 'a5bcaba6-98a3-411a-88a6-bbe5a5ae97a6'
+$MyResourceGroup = 'rg-webappcontainer-rbac'
+$SubscriptionId = ''
 
 az account set -s $SubscriptionId
 # az group delete -n $MyResourceGroup

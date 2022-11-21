@@ -18,8 +18,6 @@ param collectionName string = 'cosmosDB'
 
 var servicePrefix = '${applicationName}-${stage}'
 
-var appconfigDataReader = '516239f1-63e1-4d78-a4de-a74fb236a071'
-
 var keyVaultSecretUser = '4633458b-17de-408a-b874-0445c86b69e6'
 
 resource appServicePlan 'Microsoft.Web/serverfarms@2020-12-01' = {
@@ -32,14 +30,6 @@ resource appServicePlan 'Microsoft.Web/serverfarms@2020-12-01' = {
   sku: {
     name: 'B1'
     tier: 'Basic'
-  }
-}
-
-resource configStore 'Microsoft.AppConfiguration/configurationStores@2021-10-01-preview' = {
-  name: '${servicePrefix}-config'
-  location: location
-  sku: {
-    name: 'standard'
   }
 }
 
@@ -63,15 +53,7 @@ resource vault 'Microsoft.KeyVault/vaults@2021-11-01-preview' = {
   name: '${replace(servicePrefix, '-', '')}kv'
   location: location
   properties: {
-    accessPolicies: [ {
-        objectId: webApp.identity.principalId
-        tenantId: tenant().tenantId
-        permissions: {
-          secrets: [ 'get' ]
-        }
-      }
-    ]
-    enableRbacAuthorization: false
+    enableRbacAuthorization: true
     enableSoftDelete: false
     enabledForDeployment: false
     enabledForDiskEncryption: false
@@ -102,14 +84,6 @@ resource cosmosDbAccount 'Microsoft.DocumentDB/databaseAccounts@2022-05-15' = {
         locationName: location
       }
     ]
-  }
-}
-
-resource cosmosDbConnectionStringAppConfig 'Microsoft.AppConfiguration/configurationStores/keyValues@2021-10-01-preview' = {
-  parent: configStore
-  name: '${toUpper(cosmosDbAccount.name)}_CONNECTION_STRING'
-  properties: {
-    value: listConnectionStrings(resourceId('Microsoft.DocumentDB/databaseAccounts', cosmosDbAccount.name), '2020-04-01').connectionStrings[0].connectionString
   }
 }
 
@@ -156,7 +130,17 @@ resource cosmosDbConnectionStringAppConfigSecret 'Microsoft.KeyVault/vaults/secr
   }
 }
 
-resource symbolicname 'Microsoft.Web/sites/config@2022-03-01' = {
+resource kvRoleAssignment 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
+  name: guid(keyVaultSecretUser,webApp.id,vault.id)
+  scope: vault
+  properties: {
+    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', keyVaultSecretUser)
+    principalId: webApp.identity.principalId
+    principalType: 'ServicePrincipal'
+  }
+}
+
+resource cosmosdbConnectionstring 'Microsoft.Web/sites/config@2022-03-01' = {
   name: 'connectionstrings'
   kind: 'string'
   parent: webApp
